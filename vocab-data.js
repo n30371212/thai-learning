@@ -573,7 +573,80 @@ window.taiData = (() => {
     { char: "ไ", name: "mai malai (ai)", type: "special" },
     { char: "เ-า", name: "sara ao", type: "special" }
   ];
+  // --- 新增的情境題庫 (放在 return 之前) ---
+  const situationData = [
+    {
+      id: 1,
+      category: "交通",
+      level: "初級",
+      audioText: "ไปสุขุมวิทซอย 11 ครับ", // 這是要播放的聲音
+      context: "你是一名計程車司機，乘客上車後說了這句話。",
+      question: "乘客想去哪裡？",
+      options: [
+        { text: "機場", isCorrect: false },
+        { text: "素坤逸 11 巷", isCorrect: true },
+        { text: "火車站", isCorrect: false }
+      ],
+      explanation: "乘客說 'Pai Sukhumvit Soi 11 khrap' (去 Sukhumvit 11 巷)。"
+    },
+    {
+      id: 2,
+      category: "購物",
+      level: "初級",
+      audioText: "อันนี้เท่าไหร่คะ",
+      context: "你在夜市擺攤，一位女客人指著衣服問你。",
+      question: "客人在問什麼？",
+      options: [
+        { text: "這件多少錢？", isCorrect: true },
+        { text: "這件有大號嗎？", isCorrect: false },
+        { text: "這件有其他顏色嗎？", isCorrect: false }
+      ],
+      explanation: "她說 'An ni thao-rai kha' (這個多少錢？)。"
+    },
+    {
+      id: 3,
+      category: "禮貌",
+      level: "基礎",
+      audioText: "ขอโทษครับ",
+      context: "你在走路時不小心撞到人，對方說了這句話。",
+      question: "對方在表達什麼？",
+      options: [
+        { text: "謝謝", isCorrect: false },
+        { text: "你好", isCorrect: false },
+        { text: "對不起/不好意思", isCorrect: true }
+      ],
+      explanation: "對方說 'Kho thot khrap' (對不起/抱歉)。"
+    },
+    {
+      id: 4,
+      category: "飲食",
+      level: "初級",
+      audioText: "ไม่เผ็ด",
+      context: "服務生問你要不要辣，你聽到朋友這樣回答。",
+      question: "你的朋友想吃多辣？",
+      options: [
+        { text: "超級辣", isCorrect: false },
+        { text: "一點點辣", isCorrect: false },
+        { text: "不辣", isCorrect: true }
+      ],
+      explanation: "他說 'Mai phet' (不辣)。Mai = 不，Phet = 辣。"
+    },
+    {
+      id: 5,
+      category: "問候",
+      level: "初級",
+      audioText: "สบายดีไหม",
+      context: "很久沒見的泰國朋友打電話給你，第一句問你這個。",
+      question: "你該如何回答最適合？",
+      options: [
+        { text: "สบายดี (我很好)", isCorrect: true },
+        { text: "ราคาถูก (價格便宜)", isCorrect: false },
+        { text: "ไม่ชอบ (不喜歡)", isCorrect: false }
+      ],
+      explanation: "他問 'Sabai dee mai' (你好嗎？/過得好嗎？)。回答 'Sabai dee' (很好) 是最標準的。"
+    }
+  ];
 
-  return { rawVocabData, consonantData, vowelData };
+  return { rawVocabData, consonantData, vowelData, situationData };
 })();
 
