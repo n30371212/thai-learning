@@ -1,0 +1,23 @@
+/* 翻牌動畫 */
+.perspective-1000 { perspective: 1000px; }
+.transform-style-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+
+/* 類別顏色 */
+.class-mid { border-color: #16a34a; background-color: #f0fdf4; color: #16a34a; }
+.class-high { border-color: #dc2626; background-color: #fef2f2; color: #dc2626; }
+.class-low { border-color: #2563eb; background-color: #eff6ff; color: #2563eb; }
+.vowel-short { border-color: #f59e0b; background-color: #fffbeb; color: #92400e; }
+.vowel-long { border-color: #8b5cf6; background-color: #f5f3ff; color: #5b21b6; }
+.vowel-special { border-color: #ec4899; background-color: #fdf2f8; color: #9d174d; }
+
+/* 動畫 */
+@keyframes pulse-red { 0%, 100% { color: #ef4444; } 50% { color: #7f1d1d; } }
+.animate-timer { animation: pulse-red 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+@keyframes float-up { 
+    0% { transform: translateY(0); opacity: 1; } 
+    100% { transform: translateY(-50px); opacity: 0; } 
+}
+.animate-float-up { animation: float-up 1s ease-out forwards; }
