@@ -87,8 +87,9 @@ const HomeScreen = ({ onStart, xp, level }) => {
                     <h3 className="text-gray-400 text-xs uppercase tracking-wider mb-2 font-bold">基礎學習</h3>
                     <div className="grid grid-cols-2 gap-2">
                         <button onClick={() => onStart('learn')} className="p-3 bg-blue-50 text-blue-700 rounded-lg font-bold hover:bg-blue-100 transition">單字卡</button>
+                        <button onClick={() => onStart('vocabList')} className="p-3 bg-orange-50 text-orange-700 rounded-lg font-bold hover:bg-orange-100 transition">單字總表</button> {/* 新增這行 */}
                         <button onClick={() => onStart('rules')} className="p-3 bg-purple-50 text-purple-700 rounded-lg font-bold hover:bg-purple-100 transition">聲調表</button>
-                        <button onClick={() => onStart('alphabet')} className="p-3 bg-pink-50 text-pink-700 rounded-lg font-bold hover:bg-pink-100 transition col-span-2">字母發音</button>
+                        <button onClick={() => onStart('alphabet')} className="p-3 bg-pink-50 text-pink-700 rounded-lg font-bold hover:bg-pink-100 transition">字母發音</button>
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl shadow-lg border-2 border-yellow-400 relative overflow-hidden">
@@ -246,6 +247,98 @@ const LearnScreen = ({ onBack }) => {
                     <button onClick={() => changeCard(1)} className="px-6 py-3 bg-blue-500 rounded-xl font-bold text-white shadow-lg disabled:opacity-50" disabled={filteredCards.length === 0}>下一個</button>
                 </div>
                 <button onClick={() => setShowPinyin(!showPinyin)} className="w-full text-center text-sm text-gray-500 py-2" disabled={filteredCards.length === 0}>{showPinyin ? '👁️ 隱藏拼音' : '👁️‍🗨️ 顯示拼音'}</button>
+            </div>
+        </div>
+    );
+};
+
+// [新增元件] 單字總表 (分類 + 搜尋)
+const VocabListScreen = ({ onBack }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [groupedData, setGroupedData] = useState({});
+    
+    // 取得資料
+    const { rawVocabData } = window.getDB();
+
+    // 處理資料分類與過濾
+    useEffect(() => {
+        const term = searchTerm.trim().toLowerCase();
+        
+        // 1. 先找出所有不重複的分類
+        const categories = [...new Set(rawVocabData.map(d => d.category).filter(Boolean))];
+        
+        // 2. 建立分類物件
+        const groups = {};
+        
+        categories.forEach(cat => {
+            // 3. 過濾符合搜尋條件的單字
+            const words = rawVocabData.filter(d => 
+                d.category === cat && (
+                    d.thai.toLowerCase().includes(term) || 
+                    d.pinyin.toLowerCase().includes(term) || 
+                    d.meaning.toLowerCase().includes(term)
+                )
+            );
+            
+            // 只有當該分類下有單字時才加入
+            if (words.length > 0) {
+                groups[cat] = words;
+            }
+        });
+        
+        setGroupedData(groups);
+    }, [searchTerm, rawVocabData]);
+
+    return (
+        <div className="flex flex-col h-full bg-gray-50 max-w-md mx-auto">
+            {/* 頂部搜尋區 */}
+            <div className="bg-white p-4 shadow-sm z-10">
+                <div className="flex items-center mb-3">
+                    <button onClick={onBack} className="text-gray-500 hover:bg-gray-100 px-3 py-1 rounded mr-2">⬅️ 返回</button>
+                    <h2 className="text-xl font-bold text-gray-800">單字總表</h2>
+                </div>
+                <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">🔍</span>
+                    <input 
+                        type="text" 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        className="w-full py-2 pl-10 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 transition" 
+                        placeholder="搜尋泰文、拼音或中文..." 
+                    />
+                </div>
+            </div>
+
+            {/* 列表內容區 */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                {Object.keys(groupedData).length === 0 ? (
+                    <div className="text-center text-gray-400 mt-10">找不到符合的單字</div>
+                ) : (
+                    Object.keys(groupedData).map((cat) => (
+                        <div key={cat} className="animate-fade-in">
+                            <h3 className="text-blue-600 font-bold text-sm bg-blue-50 inline-block px-3 py-1 rounded-full mb-3 shadow-sm border border-blue-100">
+                                📂 {cat} <span className="text-blue-400 ml-1 text-xs">({groupedData[cat].length})</span>
+                            </h3>
+                            <div className="grid grid-cols-1 gap-3">
+                                {groupedData[cat].map((word) => (
+                                    <div key={word.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center hover:shadow-md transition group">
+                                        <div>
+                                            <div className="font-bold text-lg text-gray-800">{word.thai}</div>
+                                            <div className="text-xs text-blue-500 font-mono mb-0.5">{word.pinyin}</div>
+                                            <div className="text-sm text-gray-600">{word.meaning}</div>
+                                        </div>
+                                        <button 
+                                            onClick={() => window.playAudio(word.thai)} 
+                                            className="w-10 h-10 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-blue-100 hover:text-blue-600 transition active:scale-95"
+                                        >
+                                            🔊
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
@@ -505,7 +598,8 @@ function App() {
             {view === 'rules' && <RulesScreen onBack={() => setView('home')} />}
             {view === 'learn' && <LearnScreen onBack={() => setView('home')} />}
             {view === 'quiz' && <PracticeQuizScreen onBack={() => setView('home')} addXp={addXp} />}
-            
+            {view === 'vocabList' && <VocabListScreen onBack={() => setView('home')} />}
+            {view === 'alphabet' && <AlphabetScreen onBack={() => setView('home')} />}
             {view === 'examIntro' && <ExamIntroScreen onStart={startExam} onBack={() => setView('home')} />}
             {view === 'exam' && <ExamScreen questionCount={examQCount} onFinish={finishExam} />}
             {view === 'examResult' && <ExamResultScreen results={examResults} onHome={() => setView('home')} />}
