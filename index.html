@@ -416,24 +416,80 @@ const PracticeQuizScreen = ({ onBack, addXp }) => {
     );
 };
 
-// [新增元件] 情境聽力挑戰
-const SituationScreen = ({ onBack, addXp }) => {
+// [新增元件] 情境挑戰設定頁 (選擇題數)
+const SituationIntroScreen = ({ onStart, onBack }) => {
+    const { situationData } = window.getDB();
+    const maxLimit = situationData.length;
+    // 預設 10 題，如果資料庫少於 10 題就全選
+    const [qCount, setQCount] = useState(Math.min(10, maxLimit));
+
+    return (
+        <div className="flex flex-col items-center justify-center h-full p-6 bg-gray-900 text-white overflow-y-auto">
+            <div className="max-w-md w-full text-center space-y-6 animate-fade-in my-auto">
+                <div className="mb-4">
+                    <span className="text-6xl animate-bounce-slow">🎧</span>
+                </div>
+                <h2 className="text-3xl font-bold text-purple-400">情境聽力挑戰</h2>
+                <p className="text-gray-400 text-sm">請聆聽泰語對話，並選擇正確的回答。</p>
+                
+                <div className="text-left bg-gray-800 p-6 rounded-xl space-y-4 border border-gray-700">
+                    <label className="block text-gray-400 font-bold flex justify-between">
+                        <span>挑戰題數</span>
+                        <span className="text-yellow-400 text-xl">{qCount} 題</span>
+                    </label>
+                    <input 
+                        type="range" 
+                        min="5" 
+                        max={maxLimit} 
+                        step="5"
+                        value={qCount} 
+                        onChange={(e) => setQCount(parseInt(e.target.value))} 
+                        className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-500" 
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 font-mono">
+                        <span>5</span>
+                        <span>{Math.floor(maxLimit/2)}</span>
+                        <span>{maxLimit}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 pt-2 flex items-center gap-1">
+                        ⏱️ 預計耗時: {Math.ceil(qCount * 0.5)} 分鐘
+                    </p>
+                </div>
+
+                <div className="pt-4 flex gap-4 justify-center">
+                    <button onClick={onBack} className="px-6 py-3 rounded-full border border-gray-600 hover:bg-gray-800 transition">取消</button>
+                    <button onClick={() => onStart(qCount)} className="px-8 py-3 rounded-full bg-purple-600 font-bold hover:bg-purple-500 shadow-lg hover:scale-105 transition animate-pulse">
+                        開始挑戰
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// [修改元件] 情境聽力挑戰 (接收 limit 參數)
+const SituationScreen = ({ onBack, addXp, limit }) => {
     const { situationData } = window.getDB();
     const [qIndex, setQIndex] = useState(0);
-    // 隨機打亂題目順序
-    const [questions] = useState(() => window.shuffleArray(situationData || []));
+    
+    // 初始化題目：洗牌後切出指定數量
+    const [questions] = useState(() => {
+        const shuffled = window.shuffleArray(situationData || []);
+        const safeLimit = limit || 10; // 如果沒傳 limit，預設 10
+        return shuffled.slice(0, safeLimit);
+    });
+
     const [hasAnswered, setHasAnswered] = useState(false);
     const [selectedOptionIndex, setSelectedOptionIndex] = useState(null);
     const [showExplanation, setShowExplanation] = useState(false);
 
-    // 播放音效
+    // 播放音效 (題目切換時)
     useEffect(() => {
         if (questions.length > 0 && !hasAnswered) {
-            // 延遲一點點自動播放，避免切換太快嚇到
             const timer = setTimeout(() => window.playAudio(questions[qIndex].audioText), 800);
             return () => clearTimeout(timer);
         }
-    }, [qIndex, questions]);
+    }, [qIndex, questions, hasAnswered]);
 
     const handleOptionClick = (idx, isCorrect) => {
         if (hasAnswered) return;
@@ -443,10 +499,11 @@ const SituationScreen = ({ onBack, addXp }) => {
         setShowExplanation(true);
 
         if (isCorrect) {
-            window.playAudio("correct"); // 這裡只是模擬，實際上可以不用
-            addXp(15); // 情境題比較難，給多一點 XP
+            // 答對播放一個簡單的提示音 (這裡用系統語音模擬 "Ping" 或直接不播)
+            // window.playAudio("Correct"); 
+            addXp(15); 
         } else {
-            // 答錯可以播放一點音效或是震動
+            // 答錯邏輯
         }
     };
 
@@ -457,54 +514,55 @@ const SituationScreen = ({ onBack, addXp }) => {
             setSelectedOptionIndex(null);
             setShowExplanation(false);
         } else {
-            alert("挑戰完成！");
+            alert(`挑戰完成！恭喜你完成了 ${questions.length} 題練習。`);
             onBack();
         }
     };
 
-    if (!situationData || situationData.length === 0) return <div className="p-10 text-center">請先更新 vocab-data.js 加入 situationData</div>;
+    if (!situationData || situationData.length === 0) return <div className="p-10 text-center text-white">讀取資料中...或請檢查 vocab-data.js</div>;
+    if (questions.length === 0) return <div className="p-10 text-center">沒有題目</div>;
     
     const currentQ = questions[qIndex];
 
     return (
         <div className="flex flex-col h-full bg-gradient-to-b from-purple-50 to-white max-w-md mx-auto">
             {/* 頂部導航 */}
-            <div className="p-4 flex justify-between items-center">
-                <button onClick={onBack} className="text-gray-500 hover:bg-gray-200 px-3 py-1 rounded">⬅️ 退出</button>
-                <div className="text-purple-600 font-bold">情境挑戰 {qIndex + 1}/{questions.length}</div>
+            <div className="p-4 flex justify-between items-center shadow-sm bg-white">
+                <button onClick={onBack} className="text-gray-500 hover:bg-gray-100 px-3 py-1 rounded">⬅️ 退出</button>
+                <div className="text-purple-600 font-bold">情境挑戰 {qIndex + 1} / {questions.length}</div>
             </div>
 
             {/* 進度條 */}
-            <div className="w-full bg-gray-200 h-1"><div className="bg-purple-500 h-1 transition-all duration-300" style={{width: `${((qIndex+1)/questions.length)*100}%`}}></div></div>
+            <div className="w-full bg-gray-200 h-1.5"><div className="bg-purple-500 h-1.5 transition-all duration-300" style={{width: `${((qIndex+1)/questions.length)*100}%`}}></div></div>
 
             {/* 主要內容區 */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center">
                 
                 {/* 情境描述卡 */}
                 <div className="w-full bg-white rounded-2xl p-6 shadow-lg border border-purple-100 mb-6 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-3 py-1 rounded-br-xl font-bold">{currentQ.category}</div>
                     
-                    <div className="mt-4 mb-2 text-gray-500 text-sm">請聽以下對話：</div>
+                    <div className="mt-4 mb-2 text-gray-500 text-xs uppercase tracking-wider">Listen carefully</div>
                     
-                    {/* 巨大的播放按鈕 */}
+                    {/* 播放按鈕 */}
                     <button 
                         onClick={() => window.playAudio(currentQ.audioText)}
-                        className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center text-4xl shadow-md hover:scale-110 hover:bg-purple-200 transition active:scale-95 mx-auto mb-4 animate-bounce-slow"
+                        className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center text-4xl shadow-md hover:scale-105 hover:bg-purple-200 transition active:scale-95 mx-auto mb-4 text-purple-600 border-4 border-white ring-2 ring-purple-100"
                     >
-                        🎧
+                        🔊
                     </button>
                     
-                    <div className="text-gray-800 font-bold text-lg mb-2">情境：{currentQ.context}</div>
+                    <div className="text-gray-800 font-bold text-lg mb-2 leading-snug">{currentQ.context}</div>
                     <div className="text-purple-800 font-bold text-xl">{currentQ.question}</div>
                 </div>
 
                 {/* 選項區 */}
-                <div className="w-full space-y-3">
+                <div className="w-full space-y-3 pb-4">
                     {currentQ.options.map((opt, idx) => {
-                        let btnClass = "w-full p-4 rounded-xl border-2 text-left font-bold transition flex justify-between items-center ";
+                        let btnClass = "w-full p-4 rounded-xl border-2 text-left font-bold transition flex justify-between items-center shadow-sm ";
                         
                         if (!hasAnswered) {
-                            btnClass += "bg-white border-gray-200 hover:border-purple-400 hover:bg-purple-50 text-gray-700";
+                            btnClass += "bg-white border-gray-100 hover:border-purple-400 hover:bg-purple-50 text-gray-700 hover:translate-x-1";
                         } else {
                             if (opt.isCorrect) btnClass += "bg-green-100 border-green-500 text-green-800"; // 正確答案顯示綠色
                             else if (idx === selectedOptionIndex) btnClass += "bg-red-100 border-red-500 text-red-800"; // 選錯顯示紅色
@@ -513,7 +571,10 @@ const SituationScreen = ({ onBack, addXp }) => {
 
                         return (
                             <button key={idx} onClick={() => handleOptionClick(idx, opt.isCorrect)} disabled={hasAnswered} className={btnClass}>
-                                <span>{["A", "B", "C"][idx]}. {opt.text}</span>
+                                <div className="flex items-center">
+                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 ${hasAnswered && opt.isCorrect ? 'bg-green-200 text-green-800' : 'bg-gray-100 text-gray-500'}`}>{["A", "B", "C"][idx]}</span>
+                                    <span>{opt.text}</span>
+                                </div>
                                 {hasAnswered && opt.isCorrect && <span>✅</span>}
                                 {hasAnswered && !opt.isCorrect && idx === selectedOptionIndex && <span>❌</span>}
                             </button>
@@ -523,10 +584,12 @@ const SituationScreen = ({ onBack, addXp }) => {
 
                 {/* 解析區 (答題後顯示) */}
                 {showExplanation && (
-                    <div className="mt-6 w-full bg-blue-50 p-4 rounded-xl border border-blue-200 animate-fade-in">
-                        <div className="font-bold text-blue-800 mb-1">💡 解析</div>
-                        <p className="text-blue-900 text-sm">{currentQ.explanation}</p>
-                        <button onClick={nextQuestion} className="mt-4 w-full py-3 bg-blue-600 text-white rounded-lg font-bold shadow hover:bg-blue-500 transition">下一題 ➜</button>
+                    <div className="w-full bg-blue-50 p-5 rounded-2xl border border-blue-200 animate-fade-in shadow-inner mb-4">
+                        <div className="font-bold text-blue-800 mb-2 flex items-center gap-2">💡 解析 <span className="text-xs font-normal text-blue-600 bg-blue-100 px-2 rounded-full">Explanation</span></div>
+                        <p className="text-blue-900 text-sm leading-relaxed">{currentQ.explanation}</p>
+                        <button onClick={nextQuestion} className="mt-4 w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-500 transition transform active:scale-95">
+                            {qIndex < questions.length - 1 ? '下一題 ➜' : '完成挑戰 🏁'}
+                        </button>
                     </div>
                 )}
             </div>
@@ -679,6 +742,9 @@ function App() {
     const [examResults, setExamResults] = useState(null);
     const [examQCount, setExamQCount] = useState(20);
     const [historyRecordToView, setHistoryRecordToView] = useState(null);
+    
+    // 新增：情境挑戰的題數狀態
+    const [situationLimit, setSituationLimit] = useState(10);
 
     // XP 系統
     const [xp, setXp] = useState(() => parseInt(localStorage.getItem('thai_xp') || 0));
@@ -718,24 +784,54 @@ function App() {
 
     return (
         <div className="h-full w-full max-w-md mx-auto bg-white shadow-2xl overflow-hidden">
-            {view === 'home' && <HomeScreen onStart={(v) => v === 'examIntro' ? setView('examIntro') : setView(v)} xp={xp} level={level} />}
-            {view === 'situation' && <SituationScreen onBack={() => setView('home')} addXp={addXp} />}
+            {/* 首頁：處理不同按鈕的導向 */}
+            {view === 'home' && <HomeScreen onStart={(v) => {
+                if (v === 'examIntro') setView('examIntro');
+                else if (v === 'situation') setView('situationIntro'); // 導向情境設定頁
+                else setView(v);
+            }} xp={xp} level={level} />}
+
+            {/* 字母表 & 規則 & 單字卡 & 單字總表 */}
             {view === 'alphabet' && <AlphabetScreen onBack={() => setView('home')} />}
             {view === 'rules' && <RulesScreen onBack={() => setView('home')} />}
             {view === 'learn' && <LearnScreen onBack={() => setView('home')} />}
-            {view === 'quiz' && <PracticeQuizScreen onBack={() => setView('home')} addXp={addXp} />}
             {view === 'vocabList' && <VocabListScreen onBack={() => setView('home')} />}
-            {view === 'alphabet' && <AlphabetScreen onBack={() => setView('home')} />}
+            
+            {/* 簡單練習 */}
+            {view === 'quiz' && <PracticeQuizScreen onBack={() => setView('home')} addXp={addXp} />}
+            
+            {/* 實戰模擬考流程 */}
             {view === 'examIntro' && <ExamIntroScreen onStart={startExam} onBack={() => setView('home')} />}
             {view === 'exam' && <ExamScreen questionCount={examQCount} onFinish={finishExam} />}
             {view === 'examResult' && <ExamResultScreen results={examResults} onHome={() => setView('home')} />}
             
+            {/* 歷史紀錄 */}
             {view === 'history' && <HistoryScreen onBack={() => setView('home')} onViewRecord={viewRecord} />}
             {view === 'historyResult' && <ExamResultScreen results={historyRecordToView.results} onHome={() => setView('history')} isHistoryMode={true} />}
+
+            {/* 情境聽力挑戰流程 */}
+            {view === 'situationIntro' && (
+                <SituationIntroScreen 
+                    onStart={(count) => {
+                        setSituationLimit(count);
+                        setView('situation');
+                    }} 
+                    onBack={() => setView('home')} 
+                />
+            )}
+            {view === 'situation' && (
+                <SituationScreen 
+                    onBack={() => setView('home')} 
+                    addXp={addXp} 
+                    limit={situationLimit} 
+                />
+            )}
+            
+            {/* 開發者工具 (如果有保留的話) */}
+            {view === 'creator' && <VocabCreator onBack={() => setView('home')} />}
         </div>
     );
 }
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
     </script>
